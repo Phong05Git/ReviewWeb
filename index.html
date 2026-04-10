@@ -539,6 +539,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="essay-nav">
       <button class="btn btn-ghost" id="essayPrevBtn" onclick="essayNavigate(-1)">← Trước</button>
       <button class="btn btn-primary" id="essaySubmitBtn" onclick="essaySubmitAnswer()">Nộp câu này ✓</button>
+      <button class="btn btn-danger" id="essayRetryBtn" onclick="essayRetryAnswer()" style="display:none">🔄 Làm lại</button>
       <button class="btn btn-ghost" id="essayNextBtn" onclick="essayNavigate(1)">Tiếp →</button>
     </div>
   </div>
@@ -1270,8 +1271,8 @@ function essayRenderQ() {
   if (submitted) {
     ta.value = submitted.userText;
     ta.disabled = true;
-    document.getElementById('essaySubmitBtn').textContent = '✓ Đã nộp';
-    document.getElementById('essaySubmitBtn').disabled = true;
+    document.getElementById('essaySubmitBtn').style.display = 'none';
+    document.getElementById('essayRetryBtn').style.display = '';
     // Re-inject diff
     const diffEl = buildDiffEl(submitted);
     diffEl.id = 'essayDiffSection';
@@ -1282,6 +1283,8 @@ function essayRenderQ() {
     ta.disabled = false;
     document.getElementById('essaySubmitBtn').textContent = 'Nộp câu này ✓';
     document.getElementById('essaySubmitBtn').disabled = false;
+    document.getElementById('essaySubmitBtn').style.display = '';
+    document.getElementById('essayRetryBtn').style.display = 'none';
     setTimeout(() => ta.focus(), 50);
   }
 
@@ -1292,6 +1295,11 @@ function essayRenderQ() {
   document.getElementById('essayNextBtn').onclick = isLast ? essayFinish : ()=>essayNavigate(1);
 
   document.getElementById('essayBody').scrollTo({top:0, behavior:'smooth'});
+}
+
+function essayRetryAnswer() {
+  delete essayAnswers[essayCurrentQ];
+  essayRenderQ();
 }
 
 function essayNavigate(dir) {
