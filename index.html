@@ -1371,14 +1371,17 @@ function showEssayResult() {
 function tokenize(text) {
   return text.trim().split(/\s+/).filter(Boolean);
 }
+function normalize(tok) {
+  return tok.toLowerCase().replace(/[",.?!\-;:()']+/g, '');
+}
 function lcs(a, b) {
   const m=a.length, n=b.length;
   const dp=Array.from({length:m+1},()=>new Uint16Array(n+1));
   for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--)
-    dp[i][j] = a[i].toLowerCase()===b[j].toLowerCase() ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j],dp[i][j+1]);
+    dp[i][j] = normalize(a[i])===normalize(b[j]) ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j],dp[i][j+1]);
   const seq=[]; let i=0,j=0;
   while(i<m&&j<n){
-    if(a[i].toLowerCase()===b[j].toLowerCase()){seq.push([i,j]);i++;j++;}
+    if(normalize(a[i])===normalize(b[j])){seq.push([i,j]);i++;j++;}
     else if(dp[i+1][j]>=dp[i][j+1]) i++; else j++;
   }
   return seq;
@@ -1404,7 +1407,9 @@ function diffTexts(userText, correctText) {
     else               ansHtml += `<span class="tok-correct">${escHtml(tok)}</span> `;
   });
 
-  const score = cToks.length ? Math.round(matches.length / cToks.length * 100) : 0;
+  const score = cToks.filter(t => normalize(t)).length
+    ? Math.round(matches.length / cToks.filter(t => normalize(t)).length * 100)
+    : 0;
   const scoreCls = score>=80?'good':score>=50?'ok':'bad';
   return { score, userHtml, ansHtml, scoreCls };
 }
