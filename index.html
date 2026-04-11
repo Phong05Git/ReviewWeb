@@ -1113,6 +1113,7 @@ function switchMode(mode) {
   es.style.width         = '100%';
   es.style.maxWidth      = '540px';
   document.getElementById('essayFormatHint').style.display  = mode==='essay' ? '' : 'none';
+  if (mode === 'essay') essayRenderLibrary();
 }
 
 // ─── ESSAY STATE ─────────────────────────────────────────
@@ -1171,6 +1172,10 @@ function essayShowSaveModal() {
 function essayConfirmSave() {
   const name = document.getElementById('essaySaveNameInput').value.trim();
   if (!name) { showToast('⚠️ Vui lòng đặt tên!'); return; }
+  const lib = essayLibLoad();
+  if (lib.find(e => e.name.toLowerCase() === name.toLowerCase())) {
+    showToast('⚠️ Đã có đề tên này trong thư viện!'); return;
+  }
   essayLibAdd(name, essayQuestions, essayFileName);
   closeModal('essaySaveModal');
   showToast(`✅ Đã lưu "${name}"`);
