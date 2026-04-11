@@ -1374,6 +1374,21 @@ function tokenize(text) {
 function normalize(tok) {
   return tok.toLowerCase().replace(/[",.?!\-;:()']+/g, '');
 }
+// Returns array of {tok, optional} — tokens inside (...) are marked optional
+function tokenizeCorrect(text) {
+  const result = [];
+  let inParen = 0;
+  for (const tok of text.trim().split(/\s+/).filter(Boolean)) {
+    const opens  = (tok.match(/\(/g) || []).length;
+    const closes = (tok.match(/\)/g) || []).length;
+    const wasIn  = inParen > 0;
+    inParen += opens;
+    const optional = wasIn || inParen > 0;
+    inParen = Math.max(0, inParen - closes);
+    result.push({ tok, optional });
+  }
+  return result;
+}
 function lcs(a, b) {
   const m=a.length, n=b.length;
   const dp=Array.from({length:m+1},()=>new Uint16Array(n+1));
@@ -1387,37 +1402,38 @@ function lcs(a, b) {
   return seq;
 }
 function diffTexts(userText, correctText) {
-  const uToks = tokenize(userText);
-  const cToks = tokenize(correctText);
-  const matches = lcs(uToks, cToks);
-  const matchU = new Set(matches.map(([i])=>i));
-  const matchC = new Set(matches.map(([,j])=>j));
+  const uToks  = tokenize(userText);
+  const cItems = tokenizeCorrect(correctText); // [{tok, optional}]
+  const cToks  = cItems.map(x => x.tok);
 
-  // User answer HTML: matched=white, wrong=red strikethrough
+  const matches = lcs(uToks, cToks);
+  const matchU  = new Set(matches.map(([i]) => i));
+  const matchC  = new Set(matches.map(([, j]) => j));
+
+  // User HTML: matched=white, wrong=red
   let userHtml = '';
   uToks.forEach((tok, i) => {
-    if (matchU.has(i)) userHtml += `<span class="tok-match">${escHtml(tok)}</span> `;
-    else               userHtml += `<span class="tok-wrong">${escHtml(tok)}</span> `;
+    userHtml += matchU.has(i)
+      ? `<span class="tok-match">${escHtml(tok)}</span> `
+      : `<span class="tok-wrong">${escHtml(tok)}</span> `;
   });
 
-  // Correct answer HTML: matched=white, missing from user=green
+  // Correct HTML: matched=white, missing required=green, missing optional=green (still shown but not scored)
   let ansHtml = '';
-  cToks.forEach((tok, j) => {
-    if (matchC.has(j)) ansHtml += `<span class="tok-ans-match">${escHtml(tok)}</span> `;
-    else               ansHtml += `<span class="tok-correct">${escHtml(tok)}</span> `;
+  cItems.forEach(({ tok, optional }, j) => {
+    ansHtml += matchC.has(j)
+      ? `<span class="tok-ans-match">${escHtml(tok)}</span> `
+      : `<span class="tok-correct">${escHtml(tok)}</span> `;
   });
 
-  // Tính score dựa trên recall: matched / total correct tokens
-  const validCorrect = cToks.filter(t => normalize(t)).length;
-  const score = validCorrect
-    ? Math.round(matches.length / validCorrect * 100)
+  // Score: only required (non-optional) correct tokens count toward denominator
+  const required = cItems.filter(x => !x.optional);
+  const requiredMatched = matches.filter(([, j]) => !cItems[j].optional).length;
+  const score = required.length
+    ? Math.round(requiredMatched / required.filter(x => normalize(x.tok)).length * 100)
     : 0;
 
-  // isCorrect = true nếu score >= 80%
-  const isCorrect = score >= 80;
-  const scoreCls = score >= 80 ? 'good' : score >= 50 ? 'ok' : 'bad';
-
-  return { score, isCorrect, userHtml, ansHtml, scoreCls };
+  return { score, userHtml, ansHtml };
 }
 
 function buildDiffEl({ userHtml, ansHtml, score }) {
