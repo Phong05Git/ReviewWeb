@@ -520,8 +520,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div id="essayScreen" class="screen">
   <div class="quiz-header">
     <div class="quiz-title" id="essayHeaderTitle">Tự luận</div>
-    <div style="font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text2)" id="essayProgressLabel">Câu 1/1</div>
+    <button class="q-map-btn" onclick="essayToggleQMap()" style="width:auto;padding:6px 12px;border-radius:8px;flex-shrink:0">
+      🗺️ <span id="essayQMapArrow">▼</span>
+    </button>
     <button class="btn btn-ghost btn-sm btn-danger" onclick="essayFinish()">Kết thúc</button>
+  </div>
+  <div style="position:sticky;top:53px;z-index:99;background:rgba(7,7,15,.95);backdrop-filter:blur(12px);padding:0 20px;" id="essayQMapWrap" style="display:none">
+    <div class="q-map" id="essayQMap" style="border-radius:0;border-left:none;border-right:none;margin-top:0;"></div>
   </div>
   <div class="progress-wrap">
     <div class="progress-info">
@@ -537,13 +542,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <textarea class="essay-textarea" id="essayTextarea" placeholder="Nhập câu trả lời của bạn..."></textarea>
     </div>
     <!-- diff result injected here -->
-    <div class="q-map-toggle" style="max-width:760px">
-      <button class="q-map-btn" onclick="essayToggleQMap()">
-        <span>🗺️</span><span>Bản đồ câu hỏi</span>
-        <span style="margin-left:auto;font-size:.74rem" id="essayQMapArrow">▼</span>
-      </button>
-      <div class="q-map" id="essayQMap"></div>
-    </div>
     <div class="essay-nav">
       <button class="btn btn-ghost" id="essayPrevBtn" onclick="essayNavigate(-1)">← Trước</button>
       <button class="btn btn-primary" id="essaySubmitBtn" onclick="essaySubmitAnswer()">Nộp câu này ✓</button>
@@ -1266,8 +1264,10 @@ function essayUpdateQMap() {
 }
 function essayToggleQMap() {
   const map = document.getElementById('essayQMap');
-  map.classList.toggle('open');
-  document.getElementById('essayQMapArrow').textContent = map.classList.contains('open') ? '▲' : '▼';
+  const wrap = document.getElementById('essayQMapWrap');
+  const open = map.classList.toggle('open');
+  wrap.style.display = open ? '' : 'none';
+  document.getElementById('essayQMapArrow').textContent = open ? '▲' : '▼';
 }
 
 function essayShowSetup() {
