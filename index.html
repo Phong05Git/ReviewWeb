@@ -164,6 +164,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .q-map.open{display:flex;}
 .q-dot{width:32px;height:32px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:var(--bg3);border:1.5px solid var(--border2);color:var(--text3);}
 .q-dot.answered{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+.q-dot.submitted{background:var(--green-glow);border-color:var(--green);color:var(--green);}
 .q-dot.current{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);}
 .q-dot:hover{transform:scale(1.1);}
 
@@ -536,6 +537,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <textarea class="essay-textarea" id="essayTextarea" placeholder="Nhập câu trả lời của bạn..."></textarea>
     </div>
     <!-- diff result injected here -->
+    <div class="q-map-toggle" style="max-width:760px">
+      <button class="q-map-btn" onclick="essayToggleQMap()">
+        <span>🗺️</span><span>Bản đồ câu hỏi</span>
+        <span style="margin-left:auto;font-size:.74rem" id="essayQMapArrow">▼</span>
+      </button>
+      <div class="q-map" id="essayQMap"></div>
+    </div>
     <div class="essay-nav">
       <button class="btn btn-ghost" id="essayPrevBtn" onclick="essayNavigate(-1)">← Trước</button>
       <button class="btn btn-primary" id="essaySubmitBtn" onclick="essaySubmitAnswer()">Nộp câu này ✓</button>
@@ -1233,9 +1241,33 @@ async function essayParseWord(file) {
 function essayStartSession() {
   essayAnswers = {}; essayCurrentQ = 0;
   document.getElementById('essayHeaderTitle').textContent = essayFileName.replace(/\.[^.]+$/,'');
+  essayBuildQMap();
   essayRenderQ();
   showScreen('essayScreen');
   window.scrollTo({top:0});
+}
+
+function essayBuildQMap() {
+  const map = document.getElementById('essayQMap');
+  map.innerHTML = '';
+  essayQuestions.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'q-dot'; d.textContent = i+1;
+    d.onclick = () => { essayCurrentQ = i; essayRenderQ(); };
+    map.appendChild(d);
+  });
+}
+function essayUpdateQMap() {
+  document.querySelectorAll('#essayQMap .q-dot').forEach((d, i) => {
+    d.classList.remove('submitted','current','answered');
+    if (i === essayCurrentQ) d.classList.add('current');
+    else if (essayAnswers[i] !== undefined) d.classList.add('submitted');
+  });
+}
+function essayToggleQMap() {
+  const map = document.getElementById('essayQMap');
+  map.classList.toggle('open');
+  document.getElementById('essayQMapArrow').textContent = map.classList.contains('open') ? '▲' : '▼';
 }
 
 function essayShowSetup() {
@@ -1295,6 +1327,7 @@ function essayRenderQ() {
   document.getElementById('essayNextBtn').onclick = isLast ? essayFinish : ()=>essayNavigate(1);
 
   document.getElementById('essayBody').scrollTo({top:0, behavior:'smooth'});
+  essayUpdateQMap();
 }
 
 function essayRetryAnswer() {
