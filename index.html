@@ -1407,11 +1407,17 @@ function diffTexts(userText, correctText) {
     else               ansHtml += `<span class="tok-correct">${escHtml(tok)}</span> `;
   });
 
-  const score = cToks.filter(t => normalize(t)).length
-    ? Math.round(matches.length / cToks.filter(t => normalize(t)).length * 100)
+  // Tính score dựa trên recall: matched / total correct tokens
+  const validCorrect = cToks.filter(t => normalize(t)).length;
+  const score = validCorrect
+    ? Math.round(matches.length / validCorrect * 100)
     : 0;
-  const scoreCls = score>=80?'good':score>=50?'ok':'bad';
-  return { score, userHtml, ansHtml, scoreCls };
+
+  // isCorrect = true nếu score >= 80%
+  const isCorrect = score >= 80;
+  const scoreCls = score >= 80 ? 'good' : score >= 50 ? 'ok' : 'bad';
+
+  return { score, isCorrect, userHtml, ansHtml, scoreCls };
 }
 
 function buildDiffEl({ userHtml, ansHtml, score }) {
