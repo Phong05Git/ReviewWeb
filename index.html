@@ -825,26 +825,33 @@ async function parseWord(file) {
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer:buf });
   allQuestions = [];
-  const blocks = result.value.split(/\n\s*\n/).filter(b => b.trim());
-  for (const block of blocks) {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 5) continue;
-    const qM = lines[0].match(/^(?:\d+[\.\)]\s*)?(.+)$/);
-    if (!qM) continue;
-    const opts = {A:'',B:'',C:'',D:''};
-    let answer = '', explanation = '';
-    for (let i = 1; i < lines.length; i++) {
-      const l = lines[i];
-      const oM = l.match(/^([ABCD])[\.\)]\s*(.+)$/i);
-      const aM = l.match(/^(?:answer|đáp án|correct)[:\s]+([ABCD])/i);
-      const eM = l.match(/^(?:explanation|giải thích)[:\s]+(.+)$/i);
-      if (oM) opts[oM[1].toUpperCase()] = oM[2].trim();
-      else if (aM) answer = aM[1].toUpperCase();
-      else if (eM) explanation = eM[1].trim();
+  // Đọc từng dòng, bỏ qua dòng trống — hỗ trợ cả file có dòng trống giữa các dòng
+  const lines = result.value.split('\n').map(l => l.trim()).filter(Boolean);
+  let cur = null;
+  const pushCur = () => {
+    if (cur && cur.opts.A && cur.opts.B && ['A','B','C','D'].includes(cur.answer))
+      allQuestions.push({ q: cur.q, options: cur.opts, answer: cur.answer, explanation: cur.explanation });
+  };
+  for (const l of lines) {
+    const qM = l.match(/^(\d+)[\.\)]\s*(.+)$/);
+    const oM = l.match(/^([ABCD])[\.\)]\s*(.+)$/i);
+    const aM = l.match(/^(?:answer|đáp án|correct)[:\s]+([ABCD])/i);
+    const eM = l.match(/^(?:explanation|giải thích)[:\s]+(.+)$/i);
+    if (qM) {
+      pushCur();
+      cur = { q: qM[2].trim(), opts: {A:'',B:'',C:'',D:''}, answer: '', explanation: '' };
+    } else if (oM && cur) {
+      cur.opts[oM[1].toUpperCase()] = oM[2].trim();
+    } else if (aM && cur) {
+      cur.answer = aM[1].toUpperCase();
+    } else if (eM && cur) {
+      cur.explanation = eM[1].trim();
+    } else if (cur && !cur.opts.A) {
+      // Câu hỏi nhiều dòng
+      cur.q += ' ' + l;
     }
-    if (qM[1] && opts.A && opts.B && ['A','B','C','D'].includes(answer))
-      allQuestions.push({ q:qM[1].trim(), options:opts, answer, explanation });
   }
+  pushCur();
 }
 
 // ─── SETUP ───────────────────────────────────────────────
